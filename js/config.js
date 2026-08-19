@@ -3,10 +3,10 @@
 // ============================================================
 window.APP_CONFIG = {
   // Supabase 项目地址：控制台 -> Project Settings -> API -> Project URL
-  SUPABASE_URL: 'https://wjjkmhkpypnqfiqwnfmv.supabase.co',
+  SUPABASE_URL: 'https://abdwtitynjzdprjqvmzy.supabase.co',
 
   // anon public key：同一个页面下方的 "anon public" 那一串
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqamttaGtweXBucWZpcXduZm12Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMTM0NzAsImV4cCI6MjEwMjY4OTQ3MH0.ljFYHq-Vekd5eq5T9206XJnjGCRks-2_00S00NOXXGw',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiZHd0aXR5bmp6ZHByanF2bXp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxMzI2OTYsImV4cCI6MjEwMjcwODY5Nn0.uvzz1skVJ1UufB1Otkg4X9bbWzcJcioekZ3qfVxsFEQ',
 
   // 网站名称与副标题（可随意改）
   SITE_NAME: '我的藏书',
