@@ -15,9 +15,14 @@
     search: '',
     tag: null,
     editingId: null,    // 正在编辑的书籍 id（null=新增）
+    titleAutoFilled: false, // 书名是否由文件名自动填充（手动改过则置 false）
     coverFile: null,    // 待上传的封面 File
     coverChanged: false,
     coverRemoved: false,
+    fileFile: null,     // 待上传的电子书 File
+    fileChanged: false,
+    fileRemoved: false,
+    fileCurrentUrl: null,  // 当前已保存的文件地址（编辑时用）
   };
 
   const supabase = window.supabase ? window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY) : null;
@@ -41,6 +46,8 @@
     coverRemove: $('coverRemove'), cameraBtn: $('cameraBtn'), galleryBtn: $('galleryBtn'),
     fTitle: $('fTitle'), fAuthor: $('fAuthor'), fFolder: $('fFolder'),
     fTags: $('fTags'), fRating: $('fRating'), fNotes: $('fNotes'),
+    fileDrop: $('fileDrop'), fileInput: $('fileInput'), fileEmpty: $('fileEmpty'), fileInfo: $('fileInfo'),
+    fileName: $('fileName'), fileSize: $('fileSize'), fileDownload: $('fileDownload'), fileRemove: $('fileRemove'),
     deleteBookBtn: $('deleteBookBtn'), saveBookBtn: $('saveBookBtn'),
     // 通用弹窗
     promptModal: $('promptModal'), promptTitle: $('promptTitle'), promptInput: $('promptInput'), promptOk: $('promptOk'),
@@ -332,6 +339,19 @@
     }
     cover.appendChild(shade);
 
+    // 电子书文件角标（有文件则显示下载）
+    if (b.file_url) {
+      const badge = document.createElement('a');
+      badge.className = 'file-badge';
+      badge.href = b.file_url;
+      badge.target = '_blank';
+      badge.rel = 'noopener';
+      badge.title = '下载电子书：' + (b.file_name || '点击下载');
+      badge.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 3v10m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      badge.addEventListener('click', (e) => e.stopPropagation());
+      cover.appendChild(badge);
+    }
+
     card.appendChild(cover);
 
     const meta = document.createElement('div');
@@ -437,11 +457,47 @@
   }
 
   // ---------- 书籍操作 ----------
+  // 文件 UI 辅助
+  function formatSize(bytes) {
+    if (!bytes && bytes !== 0) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  // 文件名去掉扩展名，作为书名的自动填充
+  function filenameToTitle(name) {
+    return String(name || '').replace(/\.[^.]+$/, '').trim();
+  }
+
+  function resetFileUI() {
+    state.fileFile = null;
+    state.fileChanged = false;
+    state.fileRemoved = false;
+    state.fileCurrentUrl = null;
+    els.fileInput.value = '';
+    els.fileEmpty.hidden = false;
+    els.fileInfo.hidden = true;
+    els.fileDownload.removeAttribute('href');
+    els.fileName.textContent = '';
+    els.fileSize.textContent = '';
+  }
+
+  function showFileInfo(name, size, url) {
+    els.fileEmpty.hidden = true;
+    els.fileInfo.hidden = false;
+    els.fileName.textContent = name || '已上传文件';
+    els.fileSize.textContent = size ? formatSize(size) : '';
+    if (url) els.fileDownload.href = url; else els.fileDownload.removeAttribute('href');
+  }
+
   function openAdd() {
     state.editingId = null;
+    state.titleAutoFilled = false;
     state.coverFile = null;
     state.coverChanged = false;
     state.coverRemoved = false;
+    resetFileUI();
     els.fTitle.value = '';
     els.fAuthor.value = '';
     els.fTags.value = '';
@@ -462,6 +518,7 @@
     const b = state.books.find((x) => x.id === id);
     if (!b) return;
     state.editingId = id;
+    state.titleAutoFilled = false;
     state.coverFile = null;
     state.coverChanged = false;
     state.coverRemoved = false;
@@ -470,6 +527,17 @@
     els.fTags.value = (b.tags || []).join(', ');
     els.fNotes.value = b.notes || '';
     setRating(b.rating || 0);
+    // 电子书文件
+    state.fileFile = null;
+    state.fileChanged = false;
+    state.fileRemoved = false;
+    state.fileCurrentUrl = b.file_url || null;
+    els.fileInput.value = '';
+    if (b.file_url) {
+      showFileInfo(b.file_name, b.file_size, b.file_url);
+    } else {
+      resetFileUI();
+    }
     if (b.cover_url) {
       els.coverPreview.src = b.cover_url;
       els.coverPreview.hidden = false;
@@ -545,6 +613,12 @@
 
     let coverUrl = state.editingId ? (state.books.find((b) => b.id === state.editingId)?.cover_url || null) : null;
 
+    // 电子书文件：默认沿用已保存的
+    const existing = state.editingId ? state.books.find((b) => b.id === state.editingId) : null;
+    let fileUrl = existing?.file_url || null;
+    let fileName = existing?.file_name || null;
+    let fileSize = existing?.file_size || null;
+
     try {
       // 上传新封面
       if (state.coverFile) {
@@ -558,6 +632,23 @@
         coverUrl = null;
       }
 
+      // 上传新电子书文件
+      if (state.fileFile) {
+        const ext = (state.fileFile.name.split('.').pop() || 'pdf').toLowerCase();
+        const safeExt = ext.replace(/[^a-z0-9]/g, '') || 'pdf';
+        const fpath = Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + safeExt;
+        const { error: fErr } = await supabase.storage.from('ebooks').upload(fpath, state.fileFile, { contentType: state.fileFile.type || 'application/octet-stream', upsert: false });
+        if (fErr) throw fErr;
+        const { data: fpub } = supabase.storage.from('ebooks').getPublicUrl(fpath);
+        fileUrl = fpub.publicUrl;
+        fileName = state.fileFile.name;
+        fileSize = state.fileFile.size;
+      } else if (state.fileRemoved) {
+        fileUrl = null;
+        fileName = null;
+        fileSize = null;
+      }
+
       const payload = {
         title,
         author: els.fAuthor.value.trim() || null,
@@ -566,6 +657,9 @@
         notes: els.fNotes.value.trim() || null,
         rating: state._rating || null,
         cover_url: coverUrl,
+        file_url: fileUrl,
+        file_name: fileName,
+        file_size: fileSize,
       };
 
       if (state.editingId) {
@@ -604,12 +698,16 @@
   }
 
   function permanentDelete(b) {
-    confirmAction('彻底删除「' + b.title + '」？', '删除后将无法恢复，封面图片也会一并删除。', async () => {
+    confirmAction('彻底删除「' + b.title + '」？', '删除后将无法恢复，封面图片和电子书文件也会一并删除。', async () => {
       const { error } = await supabase.from('books').delete().eq('id', b.id);
       if (error) { toast('删除失败：' + error.message); return; }
       if (b.cover_url) {
         const m = b.cover_url.match(/\/covers\/(.+)$/);
         if (m) { try { await supabase.storage.from('covers').remove([m[1]]); } catch (e) {} }
+      }
+      if (b.file_url) {
+        const mf = b.file_url.match(/\/ebooks\/(.+)$/);
+        if (mf) { try { await supabase.storage.from('ebooks').remove([mf[1]]); } catch (e) {} }
       }
       toast('已彻底删除');
       await loadAll();
@@ -648,6 +746,9 @@
     document.title = CFG.SITE_NAME || '我的藏书';
 
     els.addBtn.addEventListener('click', openAdd);
+
+    // 手动改书名后，标记为非自动填充（手动优先）
+    els.fTitle.addEventListener('input', () => { state.titleAutoFilled = false; });
 
     els.trashBtn.addEventListener('click', () => selectFolder('trash'));
 
@@ -709,6 +810,34 @@
       els.coverDrop.classList.remove('has-image');
       els.coverRemove.hidden = true;
     });
+
+    // 电子书文件
+    els.fileDrop.addEventListener('click', () => els.fileInput.click());
+    els.fileInput.addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      state.fileFile = f;
+      state.fileChanged = true;
+      state.fileRemoved = false;
+      showFileInfo(f.name, f.size, null);
+      // 自动填书名：书名空、或仍是自动填充值时，用文件名覆盖（手动改过则不动）
+      const t = filenameToTitle(f.name);
+      if (t && (els.fTitle.value.trim() === '' || state.titleAutoFilled)) {
+        els.fTitle.value = t;
+        state.titleAutoFilled = true;
+        toast('已按文件名填入书名：' + t);
+      }
+      e.target.value = '';
+    });
+    els.fileRemove.addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.fileFile = null;
+      state.fileChanged = false;
+      state.fileRemoved = true;
+      state.fileCurrentUrl = null;
+      resetFileUI();
+    });
+    els.fileDownload.addEventListener('click', (e) => e.stopPropagation());
 
     // 评分
     els.fRating.querySelectorAll('button').forEach((btn) => {

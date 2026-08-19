@@ -144,6 +144,26 @@
             <label for="fNotes">备注</label>
             <textarea id="fNotes" rows="4" placeholder="写下任何想记住的信息，之后可通过关键词搜到…"></textarea>
           </div>
+          <div class="field">
+            <label>电子书文件 <small>（PDF / EPUB 等，可选）</small></label>
+            <div class="file-drop" id="fileDrop">
+              <input type="file" id="fileInput" accept=".pdf,.epub,.mobi,.azw3,.txt,.doc,.docx,application/pdf" hidden />
+              <div class="file-empty" id="fileEmpty">
+                <svg viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8l-4-5z" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linejoin="round"/><path d="M14 3v5h5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linejoin="round"/></svg>
+                <span>点击上传电子书文件</span>
+                <small>建议单个文件 50MB 以内（大文件以后升级方案）</small>
+              </div>
+              <div class="file-info" id="fileInfo" hidden>
+                <svg class="file-ic" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V8l-4-5z" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linejoin="round"/><path d="M14 3v5h5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linejoin="round"/></svg>
+                <div class="file-meta">
+                  <span class="file-name" id="fileName"></span>
+                  <span class="file-size" id="fileSize"></span>
+                </div>
+                <a class="file-download" id="fileDownload" target="_blank" rel="noopener" title="下载">下载</a>
+                <button type="button" class="file-remove" id="fileRemove" title="移除">×</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

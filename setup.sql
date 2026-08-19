@@ -25,6 +25,9 @@ create table if not exists public.books (
   notes       text,
   tags        text[] not null default '{}',
   rating      integer,
+  file_url    text,                -- 电子书文件下载地址
+  file_name   text,                -- 电子书文件名
+  file_size   bigint,              -- 电子书文件大小（字节）
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
   deleted_at  timestamptz          -- 有值 = 在回收站；null = 正常
@@ -80,6 +83,19 @@ create policy "covers_public_read"   on storage.objects for select using (bucket
 create policy "covers_public_insert" on storage.objects for insert with check (bucket_id = 'covers');
 create policy "covers_public_update" on storage.objects for update using (bucket_id = 'covers');
 create policy "covers_public_delete" on storage.objects for delete using (bucket_id = 'covers');
+
+
+-- ---------- 4. 电子书文件存储桶 ----------
+-- 建一个公开可读的存储桶 "ebooks" 用于存放 PDF/电子书文件
+
+insert into storage.buckets (id, name, public)
+values ('ebooks', 'ebooks', true)
+on conflict (id) do nothing;
+
+create policy "ebooks_public_read"   on storage.objects for select using (bucket_id = 'ebooks');
+create policy "ebooks_public_insert" on storage.objects for insert with check (bucket_id = 'ebooks');
+create policy "ebooks_public_update" on storage.objects for update using (bucket_id = 'ebooks');
+create policy "ebooks_public_delete" on storage.objects for delete using (bucket_id = 'ebooks');
 
 
 -- ============================================================
