@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#f6f4f0" />
+  <title>我的藏书</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- ============ 顶部栏 ============ -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <button class="icon-btn menu-btn" id="menuBtn" title="菜单" aria-label="菜单">
+        <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+
+      <div class="brand">
+        <h1 class="brand-title" id="brandTitle">我的藏书</h1>
+        <span class="brand-sub" id="brandSub">个人图书馆</span>
+      </div>
+
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <input type="search" id="searchInput" placeholder="搜索书名、作者、备注、标签…" autocomplete="off" />
+        <button class="search-clear" id="searchClear" hidden title="清除">×</button>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="addBtn">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span>添加书籍</span>
+        </button>
+        <button class="icon-btn" id="trashBtn" title="回收站" aria-label="回收站">
+          <svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M6 6l1 14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-14M10 11v6M14 11v6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ 主体布局 ============ -->
+  <div class="layout">
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- 侧边栏：分类 -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <span class="sidebar-title">分类</span>
+        <button class="mini-btn" id="newFolderBtn" title="新建分类" aria-label="新建分类">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <nav class="folder-tree" id="folderTree"></nav>
+    </aside>
+
+    <!-- 主内容 -->
+    <main class="main">
+      <div class="main-head">
+        <h2 class="main-title" id="currentFolderTitle">全部书籍</h2>
+        <span class="count" id="bookCount"></span>
+        <div class="tag-filter" id="tagFilter"></div>
+      </div>
+
+      <div class="book-grid" id="bookGrid"></div>
+
+      <div class="empty-state" id="emptyState" hidden>
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24"><path d="M4 19V5a1 1 0 0 1 1-1h3.5l2 2H19a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/></svg>
+        </div>
+        <p class="empty-title" id="emptyTitle">这里还没有书籍</p>
+        <p class="empty-sub">点击右上角「添加书籍」，拍照上传第一本书吧</p>
+      </div>
+
+      <div class="loading" id="loading">
+        <span class="spinner"></span>
+      </div>
+    </main>
+  </div>
+
+  <!-- ============ 书籍编辑弹窗 ============ -->
+  <div class="modal" id="bookModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card">
+      <button class="modal-close" data-close title="关闭">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+
+      <div class="modal-body">
+        <!-- 左：封面 -->
+        <div class="cover-pane">
+          <div class="cover-drop" id="coverDrop">
+            <input type="file" id="coverInput" accept="image/*" hidden />
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden />
+            <img id="coverPreview" alt="封面预览" hidden />
+            <div class="cover-placeholder" id="coverPlaceholder">
+              <svg viewBox="0 0 24 24"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12l0 0M4 4l16 16" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+              <span>添加封面</span>
+              <div class="cover-actions">
+                <button type="button" class="cover-btn" id="cameraBtn">
+                  <svg viewBox="0 0 24 24"><path d="M4 7h3l2-2h6l2 2h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.2" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>
+                  拍照
+                </button>
+                <button type="button" class="cover-btn" id="galleryBtn">
+                  <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.6" fill="none"/><circle cx="8.5" cy="10" r="1.5" fill="currentColor"/><path d="M3 17l5-5 4 4 3-3 6 6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  相册
+                </button>
+              </div>
+              <small>手机可直接拍照 · 自动压缩</small>
+            </div>
+            <button class="cover-remove" id="coverRemove" hidden>移除</button>
+          </div>
+        </div>
+
+        <!-- 右：信息 -->
+        <div class="form-pane">
+          <div class="field">
+            <label for="fTitle">书名 <em>*</em></label>
+            <input type="text" id="fTitle" placeholder="例如：《活着》" />
+          </div>
+          <div class="field">
+            <label for="fAuthor">作者</label>
+            <input type="text" id="fAuthor" placeholder="例如：余华" />
+          </div>
+          <div class="field">
+            <label for="fFolder">分类</label>
+            <select id="fFolder"></select>
+          </div>
+          <div class="field">
+            <label for="fTags">标签 <small>（用逗号分隔，方便搜索）</small></label>
+            <input type="text" id="fTags" placeholder="例如：小说, 文学, 已读" />
+          </div>
+          <div class="field">
+            <label for="fRating">评分</label>
+            <div class="rating" id="fRating">
+              <button type="button" data-v="1">★</button>
+              <button type="button" data-v="2">★</button>
+              <button type="button" data-v="3">★</button>
+              <button type="button" data-v="4">★</button>
+              <button type="button" data-v="5">★</button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="fNotes">备注</label>
+            <textarea id="fNotes" rows="4" placeholder="写下任何想记住的信息，之后可通过关键词搜到…"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-ghost btn-danger" id="deleteBookBtn" hidden>删除</button>
+        <div class="footer-right">
+          <button class="btn btn-ghost" data-close>取消</button>
+          <button class="btn btn-primary" id="saveBookBtn">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 通用输入弹窗（新建/重命名分类等） ============ -->
+  <div class="modal" id="promptModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card modal-small">
+      <h3 class="prompt-title" id="promptTitle"></h3>
+      <input type="text" id="promptInput" class="prompt-input" />
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close>取消</button>
+        <button class="btn btn-primary" id="promptOk">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 确认弹窗 ============ -->
+  <div class="modal" id="confirmModal" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card modal-small">
+      <h3 class="prompt-title" id="confirmTitle">确认操作</h3>
+      <p class="confirm-text" id="confirmText"></p>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-close>取消</button>
+        <button class="btn btn-danger-solid" id="confirmOk">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 提示 ============ -->
+  <div class="toast" id="toast" hidden></div>
+
+  <!-- 配置提示横幅 -->
+  <div class="config-banner" id="configBanner" hidden>
+    尚未配置 Supabase：请打开 <code>js/config.js</code> 填入你的项目地址和 anon key
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
